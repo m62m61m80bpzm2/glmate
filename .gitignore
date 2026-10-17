@@ -1,0 +1,21 @@
+# 第三方程序与压缩包
+SnowLuma/
+SnowLuma-v*.zip
+qqaibot/
+qq-bridge/
+
+# 运行时数据（日志/会话/token缓存）
+zglmbot/state/
+
+# 真实配置（含 API key / SnowLuma token / 群号 —— 切勿入库）
+zglmbot/config.json
+
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# 内嵌独立 git 仓库
+make-your-qq-ai-group-member/
