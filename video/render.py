@@ -36,53 +36,50 @@ FONT_MONO = "C:/Windows/Fonts/consolab.ttf"
 FFMPEG = os.environ.get("FFMPEG", "ffmpeg")
 FFPROBE = os.environ.get("FFPROBE", "ffprobe")
 VOICE = os.environ.get("VOICE", "zh-CN-XiaoxiaoNeural")
-RATE = os.environ.get("TTS_RATE", "+8%")
+RATE = os.environ.get("TTS_RATE", "+18%")
 
 SECTIONS = {
     1: ("01", "这是什么"), 2: ("01", "这是什么"), 3: ("01", "这是什么"),
     4: ("02", "能做什么"), 5: ("02", "能做什么"), 6: ("02", "能做什么"),
-    7: ("02", "能做什么"), 8: ("02", "能做什么"), 9: ("02", "能做什么"),
-    10: ("03", "免费"),
-    11: ("04", "怎么部署"), 12: ("04", "怎么部署"), 13: ("04", "怎么部署"),
-    14: ("04", "怎么部署"), 15: ("04", "怎么部署"), 16: ("04", "怎么部署"),
-    17: ("05", "出问题"), 18: ("05", "出问题"),
-    19: ("06", "在哪找"), 20: ("06", "在哪找"),
+    7: ("03", "免费"),
+    8: ("04", "怎么部署"), 9: ("04", "怎么部署"), 10: ("04", "怎么部署"),
+    11: ("04", "怎么部署"), 12: ("04", "怎么部署"),
+    13: ("05", "出问题"),
+    14: ("06", "在哪找"), 15: ("06", "在哪找"),
 }
 
 # line -> (kind, payload); shot payload = screenshot file, card = (big, sub)
 SCENES = {
-    1: ("title", "展示视频生成.png"),
-    2: ("card", ("把 AI 接进 QQ 群", "")),
-    3: ("card", ("群里所有人都能一起用", "不用一人开一个私聊")),
+    1: ("title", ("想把 AI 接进 QQ 群吗？", "glmate · GitHub 开源")),
+    2: ("card", ("glmate", "GitHub 上的开源项目")),
+    3: ("shot", "展示命令.png"),
     4: ("shot", "展示文字生成 - 副本 (2).png"),
-    5: ("card", ("联网搜索", "先查再回答")),
-    6: ("card", ("看图识字", "把图片里的文字读出来")),
-    7: ("shot", "展示图片生成 - 副本.png"),
-    8: ("shot", "展示视频生成.png"),
-    9: ("card", ("直接发到群里", "不是丢给你一个链接")),
-    10: ("card", ("免费额度", "不用花钱")),
-    11: ("card", ("不用自己配环境", "")),
-    12: ("card", ("Qoder · opencode · workbuddy · zcode", "这类 AI 助手都行")),
-    13: ("card", ("/m62m61m80bpzm2/glmate", "把这一句发给它")),
-    14: ("card", ("自己看文档、装依赖、填配置", "把服务起起来")),
-    15: ("card", ("只有登录 QQ 那一步", "需要你本人操作")),
-    16: ("card", ("不用读代码", "底层实现不用管")),
-    17: ("card", ("代码是 AI 写的", "不保证没有 bug")),
-    18: ("card", ("报错丢给它", "让它自己改")),
-    19: ("shot", "展示命令.png"),
-    20: ("end", None),
+    5: ("shot", "展示图片生成 - 副本.png"),
+    6: ("shot", "展示视频生成.png"),
+    7: ("card", ("免费", "用的是免费额度")),
+    8: ("card", ("不用配环境", "")),
+    9: ("card", ("有 AI 编程助手就行", "Qoder · opencode · workbuddy · zcode")),
+    10: ("card", ("/m62m61m80bpzm2/glmate", "发给它")),
+    11: ("card", ("自己看文档、装依赖、起服务", "")),
+    12: ("card", ("只有登录 QQ 要你本人来", "")),
+    13: ("card", ("代码是 AI 写的", "报错丢给 AI 修")),
+    14: ("card", ("glmate", "github.com/m62m61m80bpzm2/glmate")),
+    15: ("end", None),
+}
+
+# 右侧有残缺头像、且文字留白足够的截图才裁右边；其余保持原图，避免切断聊天内容。
+CROP = {
+    "展示视频生成.png": 0.06,
+    "展示命令.png": 0.05,
 }
 
 # Lines whose caption is skipped: the card itself already shows the text.
-NO_CAPTION = {13}
+NO_CAPTION = {1, 10}
 
 # Spoken overrides: captions keep the written form, TTS gets something pronounceable.
 SAY = {
-    1: "GitHub 上有这么个项目，叫 glmate。",
-    3: "机器人进群之后，群里所有人都能一起找它聊，不用一人开一个私聊。",
-    12: "只要电脑上有能自动执行任务的 AI 助手，比如 Qoder、opencode、workbuddy、zcode，这类都算。",
-    13: "给它发一句话就行：读一下这个仓库，m62m61m80bpzm2，斜杠，glmate。",
-    19: "项目在 GitHub 上，仓库名 m62m61m80bpzm2，斜杠，glmate，MIT 协议开源。",
+    10: "发一句：读一下这个仓库，m62m61m80bpzm2，斜杠，glmate。",
+    14: "项目在 GitHub 上，m62m61m80bpzm2，斜杠，glmate。",
 }
 
 
@@ -129,9 +126,11 @@ def wrap(draw, text, fnt, max_w):
     return [s.strip() for s in lines if s.strip()]
 
 
-def round_shot(path, height, radius=30, crop_right=0.07):
+def round_shot(path, height, radius=30):
     img = Image.open(ASSETS / path).convert("RGB")
-    img = img.crop((0, 0, int(img.width * (1 - crop_right)), img.height))
+    crop = CROP.get(path, 0.0)
+    if crop:
+        img = img.crop((0, 0, int(img.width * (1 - crop)), img.height))
     w = int(img.width * height / img.height)
     img = img.resize((w, height), Image.LANCZOS)
     mask = Image.new("L", img.size, 0)
@@ -171,17 +170,22 @@ def draw_caption(d, text):
     d.text(((W - w) / 2, H - 74), line, font=f, fill=MUTED)
 
 
-def frame_title(base, d, shot_file):
-    f = font(FONT_BD, 178)
-    d.text((120, 380), "glmate", font=f, fill=INK)
-    d.text((126, 600), "把 AI 接进 QQ 群", font=font(FONT_RG, 62), fill=MUTED)
-    d.rectangle([126, 700, 226, 706], fill=ACCENT)
-    shot, mask = round_shot(shot_file, 620)
-    paste_shot(base, shot, mask, W - shot.width - 140, (H - 620) // 2 + 20)
+def frame_title(d, big, sub):
+    f = font(FONT_BD, 118)
+    lines = wrap(d, big, f, 1620)
+    total = len(lines) * 152 + 100
+    y = (H - total) // 2 + 10
+    top = d.textbbox((120, y), lines[0], font=f)[1]
+    d.rectangle([120, top - 50, 184, top - 44], fill=ACCENT)
+    for ln in lines:
+        d.text((120, y), ln, font=f, fill=INK)
+        y += 152
+    y += 6
+    d.text((126, y), sub, font=font(FONT_RG, 52), fill=MUTED)
 
 
 def frame_shot(base, d, n, shot_file, caption):
-    shot, mask = round_shot(shot_file, 640)
+    shot, mask = round_shot(shot_file, 700)
     paste_shot(base, shot, mask, 120, (H - 640) // 2 + 30)
     x = 120 + shot.width + 110
     max_w = W - x - 110
@@ -229,7 +233,7 @@ def make_frame(n, kind, payload, caption):
     draw_header(d, n)
     draw_watermark(base, n)
     if kind == "title":
-        frame_title(base, d, payload)
+        frame_title(d, *payload)
     elif kind == "end":
         frame_end(d, n)
     elif kind == "shot":
@@ -322,7 +326,7 @@ def segment(n, frame, audio, dur, seg):
                     "-loop", "1", "-framerate", str(FPS), "-i", str(frame),
                     "-i", str(audio),
                     "-vf", vf,
-                    "-af", "apad=pad_dur=0.45",
+                    "-af", "apad=pad_dur=0.28",
                     "-c:v", "libx264", "-preset", "medium", "-crf", "20",
                     "-r", str(FPS),
                     "-c:a", "aac", "-b:a", "160k", "-ar", "44100",
@@ -340,7 +344,7 @@ def main():
         fp = BUILD / f"{n:02d}.png"
         frame.save(fp)
         audio = BUILD / "tts" / f"{n:02d}{ext}"
-        dur = duration(audio) + 0.45
+        dur = duration(audio) + 0.28
         seg = BUILD / f"{n:02d}.mp4"
         segment(n, fp, audio, dur, seg)
         segs.append(seg)
