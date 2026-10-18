@@ -13,6 +13,7 @@ import render as R
 
 OUT_H = R.HERE / "cover-horizontal.png"
 OUT_V = R.HERE / "cover-vertical.png"
+OUT_43 = R.HERE / "cover-4x3.png"
 
 
 def label(d, x, y):
@@ -85,6 +86,32 @@ def vertical():
     save(base, OUT_V)
 
 
+def four_three():
+    W, H = 1440, 1080
+    base = Image.new("RGBA", (W, H), R.BG)
+    d = ImageDraw.Draw(base)
+
+    label(d, 90, 80)
+    d.rectangle([90, 160, 170, 166], fill=R.ACCENT)
+
+    y = headline_lines(d, 90, 250, ["把 AI 接进", "QQ 群"], 150, 176)
+    d.text((96, y + 10), "能聊天、联网、看图、画图、生成视频",
+           font=R.font(R.FONT_RG, 36), fill=R.MUTED)
+    d.text((96, y + 62), "免费额度 · 一句话部署",
+           font=R.font(R.FONT_RG, 36), fill=R.MUTED)
+
+    d.rectangle([90, y + 150, 170, y + 156], fill=R.ACCENT)
+    d.text((90, y + 176), "读", font=R.font(R.FONT_RG, 38), fill=R.MUTED)
+    d.text((134, y + 173), "/m62m61m80bpzm2/glmate",
+           font=R.font(R.FONT_MONO, 38), fill=R.INK)
+
+    shot, mask = R.round_shot("展示视频生成.png", 680)
+    R.paste_shot(base, shot, mask, W - shot.width - 90, 190)
+
+    save(base, OUT_43)
+
+
 if __name__ == "__main__":
     horizontal()
     vertical()
+    four_three()

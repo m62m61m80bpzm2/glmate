@@ -70,6 +70,10 @@ CROP = {
     "展示命令.png": 0.05,
 }
 
+BOTTOM_CROP = {
+    "展示视频生成.png": 0.04,
+}
+
 # Lines whose caption is skipped: the card itself already shows the text.
 NO_CAPTION = {1, 8, 12}
 
@@ -125,6 +129,9 @@ def round_shot(path, height, radius=30):
     crop = CROP.get(path, 0.0)
     if crop:
         img = img.crop((0, 0, int(img.width * (1 - crop)), img.height))
+    bottom = BOTTOM_CROP.get(path, 0.0)
+    if bottom:
+        img = img.crop((0, 0, img.width, int(img.height * (1 - bottom))))
     w = int(img.width * height / img.height)
     img = img.resize((w, height), Image.LANCZOS)
     mask = Image.new("L", img.size, 0)
