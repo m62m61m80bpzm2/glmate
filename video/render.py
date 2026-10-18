@@ -36,35 +36,32 @@ FONT_MONO = "C:/Windows/Fonts/consolab.ttf"
 FFMPEG = os.environ.get("FFMPEG", "ffmpeg")
 FFPROBE = os.environ.get("FFPROBE", "ffprobe")
 VOICE = os.environ.get("VOICE", "zh-CN-XiaoxiaoNeural")
-RATE = os.environ.get("TTS_RATE", "+18%")
+RATE = os.environ.get("TTS_RATE", "+35%")
 
 SECTIONS = {
-    1: ("01", "这是什么"), 2: ("01", "这是什么"), 3: ("01", "这是什么"),
-    4: ("02", "能做什么"), 5: ("02", "能做什么"), 6: ("02", "能做什么"),
-    7: ("03", "免费"),
-    8: ("04", "怎么部署"), 9: ("04", "怎么部署"), 10: ("04", "怎么部署"),
-    11: ("04", "怎么部署"), 12: ("04", "怎么部署"),
-    13: ("05", "出问题"),
-    14: ("06", "在哪找"), 15: ("06", "在哪找"),
+    1: ("01", "这是什么"), 2: ("01", "这是什么"),
+    3: ("02", "能做什么"), 4: ("02", "能做什么"),
+    5: ("03", "免费"),
+    6: ("04", "怎么部署"), 7: ("04", "怎么部署"), 8: ("04", "怎么部署"),
+    9: ("04", "怎么部署"), 10: ("04", "怎么部署"),
+    11: ("05", "出问题"),
+    12: ("06", "在哪找"),
 }
 
 # line -> (kind, payload); shot payload = screenshot file, card = (big, sub)
 SCENES = {
-    1: ("title", ("想把 AI 接进 QQ 群吗？", "glmate · GitHub 开源")),
-    2: ("card", ("glmate", "GitHub 上的开源项目")),
-    3: ("shot", "展示命令.png"),
-    4: ("shot", "展示文字生成 - 副本 (2).png"),
-    5: ("shot", "展示图片生成 - 副本.png"),
-    6: ("shot", "展示视频生成.png"),
-    7: ("card", ("免费", "用的是免费额度")),
-    8: ("card", ("不用配环境", "")),
-    9: ("card", ("有 AI 编程助手就行", "Qoder · opencode · workbuddy · zcode")),
-    10: ("card", ("/m62m61m80bpzm2/glmate", "发给它")),
-    11: ("card", ("自己看文档、装依赖、起服务", "")),
-    12: ("card", ("只有登录 QQ 要你本人来", "")),
-    13: ("card", ("代码是 AI 写的", "报错丢给 AI 修")),
-    14: ("card", ("glmate", "github.com/m62m61m80bpzm2/glmate")),
-    15: ("end", None),
+    1: ("title", ("想把 AI 接进 QQ 群吗？", "GitHub 开源项目 glmate")),
+    2: ("shot", "展示命令.png"),
+    3: ("shot", "展示图片生成 - 副本.png"),
+    4: ("shot", "展示视频生成.png"),
+    5: ("card", ("免费用", "全部免费额度")),
+    6: ("card", ("不用配环境", "")),
+    7: ("card", ("有 AI 编程助手就行", "Qoder · opencode · workbuddy · zcode")),
+    8: ("card", ("/m62m61m80bpzm2/glmate", "把这一句发给它")),
+    9: ("card", ("自己装好、跑起来", "")),
+    10: ("card", ("只有登录 QQ 要你本人来", "")),
+    11: ("card", ("代码是 AI 写的", "报错让 AI 修")),
+    12: ("end", None),
 }
 
 # 右侧有残缺头像、且文字留白足够的截图才裁右边；其余保持原图，避免切断聊天内容。
@@ -74,13 +71,10 @@ CROP = {
 }
 
 # Lines whose caption is skipped: the card itself already shows the text.
-NO_CAPTION = {1, 10}
+NO_CAPTION = {1, 8, 12}
 
 # Spoken overrides: captions keep the written form, TTS gets something pronounceable.
-SAY = {
-    10: "发一句：读一下这个仓库，m62m61m80bpzm2，斜杠，glmate。",
-    14: "项目在 GitHub 上，m62m61m80bpzm2，斜杠，glmate。",
-}
+SAY = {}
 
 
 def load_lines():
@@ -326,7 +320,7 @@ def segment(n, frame, audio, dur, seg):
                     "-loop", "1", "-framerate", str(FPS), "-i", str(frame),
                     "-i", str(audio),
                     "-vf", vf,
-                    "-af", "apad=pad_dur=0.28",
+                    "-af", "apad=pad_dur=0.2",
                     "-c:v", "libx264", "-preset", "medium", "-crf", "20",
                     "-r", str(FPS),
                     "-c:a", "aac", "-b:a", "160k", "-ar", "44100",
@@ -344,7 +338,7 @@ def main():
         fp = BUILD / f"{n:02d}.png"
         frame.save(fp)
         audio = BUILD / "tts" / f"{n:02d}{ext}"
-        dur = duration(audio) + 0.28
+        dur = duration(audio) + 0.2
         seg = BUILD / f"{n:02d}.mp4"
         segment(n, fp, audio, dur, seg)
         segs.append(seg)
