@@ -3,9 +3,11 @@
 zglmbot v2.0 - QQ群AI机器人 (由 zagent37a 精简改造)
 
 命令: /help /sessions /new /rename /use /context /reset /on /off
-429阶梯: 主模型1/3/5/10s x4 -> 备用10s x6 -> 放弃
-工具: web_search / image_ocr / image_generate(cogview-3-flash) / video_generate(cogvideox-flash)
-Token: 智谱Tokenizer API精确计数 + usage校验; 压缩触发=窗口x80%
+429阶梯: 主模型1/3/5/10s x4 -> 备用10s x6 -> 放弃 (backupModel 置空则全程用主模型)
+工具: web_search / image_ocr / image_generate / video_generate
+      对应模型字段(imageGenModel/videoGenModel/multimodalModel)置空即从 tools 中摘除
+端点: baseUrl 走 OpenAI 兼容 /chat/completions; 画图/视频为智谱专有端点
+Token: 智谱Tokenizer API精确计数(非智谱端点自动降级估算) + usage校验; 压缩触发=窗口x80%
 连接: OneBot v11 正向WS直连SnowLuma, 无需DSH
 """
 
@@ -343,7 +345,14 @@ def parse_segments(segments):
 def messages_to_llm(sess):
     msgs = []
     summary = sess.get("summary", "")
-    sys_parts = [load_config().get("systemPrompt", DEFAULT_SYSTEM_PROMPT)]
+    cfg = load_config()
+    sys_parts = [cfg.get("systemPrompt", DEFAULT_SYSTEM_PROMPT)]
+    enabled = {t["function"]["name"] for t in active_tools(cfg)}
+    missing = [lbl for name, lbl in TOOL_LABELS.items() if name not in enabled]
+    if missing:
+        sys_parts.append(
+            "【当前未开启的能力】" + "、".join(missing) +
+            "。群友提及时直接说明本群没开这个功能，不要假装已完成，也不要贴链接或编造结果。")
     if summary:
         sys_parts.append(f"【早期对话摘要】\n{summary}")
     msgs.append({"role": "system", "content": "\n\n".join(sys_parts)})
@@ -538,6 +547,27 @@ TOOL_LABELS = {
     "video_generate": "生成视频",
 }
 
+# image_generate / video_generate 走智谱专有端点，其它 provider 换掉 baseUrl 后不可用，
+# 把对应模型字段配成空字符串即可从 tools 列表里摘除。
+TOOL_MODEL_KEYS = {
+    "image_ocr": "multimodalModel",
+    "image_generate": "imageGenModel",
+    "video_generate": "videoGenModel",
+}
+
+
+def active_tools(cfg):
+    out = []
+    for t in TOOLS:
+        name = t["function"]["name"]
+        model_key = TOOL_MODEL_KEYS.get(name)
+        if model_key and not str(cfg.get(model_key) or "").strip():
+            continue
+        if name == "web_search" and not (cfg.get("webSearch") or {}).get("enabled", True):
+            continue
+        out.append(t)
+    return out
+
 
 def tool_web_search(query, cfg):
     from ddgs import DDGS
@@ -612,6 +642,8 @@ def dispatch_tool(name, args, cfg):
     fn = fn_map.get(name)
     if not fn:
         return f"未知工具: {name}"
+    if name not in {t["function"]["name"] for t in active_tools(cfg)}:
+        return "当前配置没有启用这个能力，请直接文字回复，不要调用该工具。"
     # 429/繁忙 阶梯重试（全部10档约80秒，静默不发群消息）；耗尽抛 ToolBusyException
     for i, wait in enumerate(RETRY_WAITS):
         try:
@@ -656,16 +688,16 @@ def llm_chat_with_retry(messages, ctx_tokens, cfg, on_retry=None, on_backup=None
     Raises LLMBusyException after exhausting ladder.
     """
     main = cfg.get("model", "glm-4.7-flash")
-    backup = cfg.get("backupModel", "glm-4-flash")
+    backup = str(cfg.get("backupModel") or "").strip() or main
     backup_window = get_context_window(backup)
     force_main = ctx_tokens > backup_window * 0.95
     last_err = None
     for i, wait in enumerate(RETRY_WAITS):
         model = _pick_model_for_attempt(i, force_main, main, backup)
-        if model == backup and i == MAIN_RETRY_COUNT and on_backup and not force_main:
+        if backup != main and model == backup and i == MAIN_RETRY_COUNT and on_backup and not force_main:
             on_backup()
         try:
-            content, tool_calls, usage = _llm_chat(model, messages, cfg, tools=TOOLS)
+            content, tool_calls, usage = _llm_chat(model, messages, cfg, tools=active_tools(cfg))
             return content, tool_calls, model, _sum_tokens(usage)
         except urllib.error.HTTPError as e:
             msg = _extract_api_error(e)
@@ -709,7 +741,7 @@ def compress_context(sess, model, cfg):
         return 0
     transcript = "\n".join(
         f"{m.get('role')}: {str(m.get('content', ''))[:500]}" for m in old[-60:])
-    backup = cfg.get("backupModel", "glm-4-flash")
+    backup = str(cfg.get("backupModel") or "").strip() or cfg.get("model", "glm-4.7-flash")
     new_summary = ""
     try:
         content, _, _ = _llm_chat(backup, [
@@ -1017,7 +1049,7 @@ class Bot:
             backup_msg_sent["done"] = True
             loop.call_soon_threadsafe(
                 lambda: asyncio.ensure_future(
-                    self.send_group(gid, f"切换到备用模型 {cfg.get('backupModel', 'glm-4-flash')}")))
+                    self.send_group(gid, f"切换到备用模型 {cfg.get('backupModel')}")))
 
         try:
             for round_i in range(int(cfg.get("maxToolRounds", 4))):
