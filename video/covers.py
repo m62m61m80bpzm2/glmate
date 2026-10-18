@@ -14,6 +14,7 @@ import render as R
 OUT_H = R.HERE / "cover-horizontal.png"
 OUT_V = R.HERE / "cover-vertical.png"
 OUT_43 = R.HERE / "cover-4x3.png"
+OUT_34 = R.HERE / "cover-3x4.png"
 
 
 def label(d, x, y):
@@ -111,7 +112,39 @@ def four_three():
     save(base, OUT_43)
 
 
+def three_four():
+    """竖封面 3:4：不用聊天截图，避免平台判定「截屏当封面」。"""
+    W, H = 1080, 1440
+    base = Image.new("RGBA", (W, H), R.BG)
+    d = ImageDraw.Draw(base)
+
+    label(d, 90, 80)
+    d.rectangle([90, 160, 170, 166], fill=R.ACCENT)
+
+    y = headline_lines(d, 90, 230, ["把 AI 接进", "QQ 群"], 132, 158)
+    d.text((96, y + 8), "能聊天、联网、看图、画图、生成视频",
+           font=R.font(R.FONT_RG, 36), fill=R.MUTED)
+    d.text((96, y + 58), "免费额度 · 一句话部署",
+           font=R.font(R.FONT_RG, 36), fill=R.MUTED)
+
+    # 只取生成图里的柴犬，不带聊天界面与消息气泡
+    src = Image.open(R.HERE / "展示图片生成 - 副本.png").convert("RGB")
+    dog = src.crop((39, 250, 256, 467)).resize((520, 520), Image.LANCZOS)
+    mask = Image.new("L", dog.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, 519, 519], 34, fill=255)
+    R.paste_shot(base, dog, mask, (W - 520) // 2, 670)
+
+    d.rectangle([90, 1240, 170, 1246], fill=R.ACCENT)
+    d.text((90, 1262), "读", font=R.font(R.FONT_RG, 40), fill=R.MUTED)
+    d.text((136, 1259), "/m62m61m80bpzm2/glmate",
+           font=R.font(R.FONT_MONO, 40), fill=R.INK)
+    d.text((90, 1330), "发给你的 AI 编程助手", font=R.font(R.FONT_RG, 34), fill=R.MUTED)
+
+    save(base, OUT_34)
+
+
 if __name__ == "__main__":
     horizontal()
     vertical()
     four_three()
+    three_four()
