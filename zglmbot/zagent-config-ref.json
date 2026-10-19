@@ -7,7 +7,7 @@
   "chatId": "",
   "userId": "",
   "token": "",
-  "workDir": "D:\\REDACTED\\agent\\zagent",
+  "workDir": "",
   "multimodalModel": "glm-4.1v-thinking-flash",
   "backupModel": "glm-4-flash",
   "backupMultimodalModel": "glm-4v-flash",
